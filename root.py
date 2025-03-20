@@ -21,9 +21,6 @@ ROOT_ENV_DIR = os.path.join(TERMUX_HOME, "aburoot_env")
 MAGISK_URL = "https://github.com/topjohnwu/Magisk/releases/download/v27.0/Magisk-v27.0.apk"
 
 # تحقق من Termux
-if "termux" not in platform.system().lower():
-    print(colored("[ERROR] This tool is designed for Termux only!", "red"))
-    sys.exit(1)
 
 # شعار الأداة
 def print_banner():
