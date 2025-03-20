@@ -6,10 +6,11 @@ import string
 import shutil
 import subprocess
 import getpass
-from termcolor import colored  # للألوان في الواجهة
+from termcolor import colored
 import platform
 import zipfile
 import requests
+import json
 
 # إعدادات الأداة
 VERSION = "1.0"
@@ -18,9 +19,13 @@ GITHUB_URL = "https://github.com/AbuAlqasm/AbuRoot"
 TERMUX_HOME = os.path.expanduser("~")
 TEMP_DIR = os.path.join(TERMUX_HOME, "aburoot_temp")
 ROOT_ENV_DIR = os.path.join(TERMUX_HOME, "aburoot_env")
+CONFIG_FILE = os.path.join(TERMUX_HOME, ".aburoot_config")
 MAGISK_URL = "https://github.com/topjohnwu/Magisk/releases/download/v27.0/Magisk-v27.0.apk"
 
 # تحقق من Termux
+if "termux" not in platform.system().lower():
+    print(colored("[ERROR] This tool is designed for Termux only!", "red"))
+    sys.exit(1)
 
 # شعار الأداة
 def print_banner():
@@ -113,22 +118,36 @@ def simulate_root_command(command):
         except:
             return f"[ERROR] Failed to execute: {command}"
 
+# إعداد وحفظ بيانات تسجيل الدخول
+def setup_credentials():
+    if not os.path.exists(CONFIG_FILE):
+        print(colored("[SETUP] Set up your custom credentials", "cyan"))
+        username = input(colored("Enter your username: ", "yellow"))
+        password = getpass.getpass(colored("Enter your password: ", "yellow"))
+        
+        config = {"username": username, "password": password}
+        with open(CONFIG_FILE, "w") as f:
+            json.dump(config, f)
+        print(colored("[SUCCESS] Credentials saved!", "green"))
+        return username, password
+    else:
+        with open(CONFIG_FILE, "r") as f:
+            config = json.load(f)
+        return config["username"], config["password"]
+
 # واجهة تسجيل الدخول
 def login_screen():
+    saved_username, saved_password = setup_credentials()
     print(colored("[LOGIN] Please enter your credentials", "cyan"))
     username = input(colored("Username: ", "yellow"))
     password = getpass.getpass(colored("Password: ", "yellow"))
     
-    # بيانات تسجيل الدخول الافتراضية
-    valid_username = "AbuRoot"
-    valid_password = "Chaos2025"
-    
-    if username == valid_username and password == valid_password:
+    if username == saved_username and password == saved_password:
         print(colored("[SUCCESS] Login successful!", "green"))
-        return True
+        return username, password
     else:
         print(colored("[ERROR] Invalid credentials!", "red"))
-        return False
+        return None, None
 
 # موجه الأوامر المخصص
 def custom_prompt(username, password):
@@ -202,11 +221,11 @@ A powerful root tool for Termux by {AUTHOR}
 3. `python aburoot.py`
 
 ## Usage
-- Login with username: `AbuRoot`, password: `Chaos2025`
+- Set up your custom username and password on first run
 - Use commands like `sudo`, `check_root`, `install_magisk`
 
 ## Version
-{v.VERSION}
+{VERSION}
         """)
     
     with open(os.path.join(repo_dir, "LICENSE"), "w") as f:
@@ -223,9 +242,10 @@ def main():
     setup_root_env()
     check_updates()
     
-    if login_screen():
+    username, password = login_screen()
+    if username and password:
         prepare_for_github()
-        custom_prompt("AbuRoot", "Chaos2025")
+        custom_prompt(username, password)
     else:
         print(colored("[INFO] Login failed. Exiting...", "red"))
         sys.exit(1)
